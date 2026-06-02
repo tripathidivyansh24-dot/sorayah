@@ -2098,6 +2098,16 @@
     margin-bottom: 22px;
   }
 
+  .checkout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+  }
+
+  .checkout-field.full {
+    grid-column: 1 / -1;
+  }
+
   .checkout-field label {
     display: block;
     font-family: 'Cinzel', serif;
@@ -2108,10 +2118,9 @@
     text-transform: uppercase;
   }
 
+  .checkout-field input,
   .checkout-field textarea {
     width: 100%;
-    min-height: 118px;
-    resize: vertical;
     border: 1px solid var(--border);
     background: #fffdf8;
     color: var(--text-dark);
@@ -2123,9 +2132,158 @@
     transition: border-color 0.2s, box-shadow 0.2s;
   }
 
+  .checkout-field textarea {
+    min-height: 96px;
+    resize: vertical;
+  }
+
+  .checkout-field input {
+    min-height: 48px;
+  }
+
+  .checkout-field input:focus,
   .checkout-field textarea:focus {
     border-color: var(--gold);
     box-shadow: 0 0 0 3px rgba(201,168,76,0.14);
+  }
+
+  .checkout-status {
+    min-height: 20px;
+    margin: -4px 0 18px;
+    color: var(--deep-green);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .payment-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .payment-options {
+    display: grid;
+    gap: 14px;
+  }
+
+  .payment-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+    border: 1px solid var(--border);
+    background: #fffdf8;
+    padding: 18px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  }
+
+  .payment-option:has(input:checked) {
+    border-color: var(--gold);
+    box-shadow: 0 10px 24px rgba(13,61,46,0.1);
+    transform: translateY(-1px);
+  }
+
+  .payment-option input {
+    margin-top: 4px;
+    accent-color: var(--deep-green);
+  }
+
+  .payment-option-title {
+    display: block;
+    font-family: 'Cinzel', serif;
+    color: var(--deep-green);
+    font-size: 13px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .payment-option-copy {
+    color: var(--text-mid);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .order-summary {
+    border: 1px solid var(--border);
+    background: var(--gold-pale);
+    padding: 22px;
+  }
+
+  .order-summary h3 {
+    font-family: 'Cinzel', serif;
+    color: var(--deep-green);
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .summary-items {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .summary-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    color: var(--text-dark);
+    font-size: 14px;
+  }
+
+  .summary-item-name {
+    color: var(--deep-green);
+    font-weight: 700;
+  }
+
+  .summary-muted {
+    color: var(--text-mid);
+    font-size: 12px;
+    line-height: 1.5;
+    margin-top: 3px;
+  }
+
+  .summary-total {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-bottom: 18px;
+    font-family: 'Cinzel', serif;
+    color: var(--deep-green);
+    font-weight: 700;
+  }
+
+  .summary-address {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    color: var(--text-mid);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .order-success-mark {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: var(--deep-green);
+    color: var(--gold-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    margin-bottom: 22px;
+  }
+
+  .checkout-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+    transform: none;
+    box-shadow: none;
   }
 
   .checkout-actions {
@@ -2516,6 +2674,12 @@
     }
     .checkout-heading {
       font-size: 34px;
+    }
+    .checkout-grid {
+      grid-template-columns: 1fr;
+    }
+    .payment-layout {
+      grid-template-columns: 1fr;
     }
     .checkout-actions {
       grid-template-columns: 1fr;
@@ -3585,22 +3749,133 @@
     <div class="checkout-panel">
       <div class="checkout-header">
         <span class="checkout-kicker">Secure Checkout</span>
-        <h2 class="checkout-heading">Delivery Details</h2>
+        <h2 class="checkout-heading">Address Details</h2>
         <p class="checkout-copy">Add your shipping address so we can prepare your order and keep your bag ready for payment.</p>
       </div>
 
-      <div class="checkout-field">
-        <label for="shipping-address">Shipping Address</label>
-        <textarea id="shipping-address" placeholder="House number, street, city, state, PIN code"></textarea>
+      <form id="checkout-address-form" onsubmit="continueToPayment(event)" novalidate>
+        <div class="checkout-grid">
+          <div class="checkout-field">
+            <label for="checkout-full-name">Full Name</label>
+            <input id="checkout-full-name" name="fullName" type="text" autocomplete="name" required>
+          </div>
+
+          <div class="checkout-field">
+            <label for="checkout-phone">Phone Number</label>
+            <input id="checkout-phone" name="phone" type="tel" autocomplete="tel" required>
+          </div>
+
+          <div class="checkout-field full">
+            <label for="checkout-address-line-1">Address Line 1</label>
+            <input id="checkout-address-line-1" name="addressLine1" type="text" autocomplete="address-line1" required>
+          </div>
+
+          <div class="checkout-field full">
+            <label for="checkout-address-line-2">Address Line 2</label>
+            <input id="checkout-address-line-2" name="addressLine2" type="text" autocomplete="address-line2">
+          </div>
+
+          <div class="checkout-field">
+            <label for="checkout-city">City</label>
+            <input id="checkout-city" name="city" type="text" autocomplete="address-level2" required>
+          </div>
+
+          <div class="checkout-field">
+            <label for="checkout-state">State</label>
+            <input id="checkout-state" name="state" type="text" autocomplete="address-level1" required>
+          </div>
+
+          <div class="checkout-field">
+            <label for="checkout-postal-code">Postal Code</label>
+            <input id="checkout-postal-code" name="postalCode" type="text" inputmode="numeric" autocomplete="postal-code" required>
+          </div>
+        </div>
+
+        <div class="checkout-status" id="checkout-status" aria-live="polite"></div>
+
+        <div class="checkout-actions">
+          <button class="checkout-action secondary" type="button" onclick="showPage('collections')">
+            Back To Shopping
+          </button>
+
+          <button class="checkout-action primary" type="submit">
+            Continue To Payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="page-payment" class="checkout-page" style="display:none;">
+    <div class="checkout-panel">
+      <div class="checkout-header">
+        <span class="checkout-kicker">Payment Method</span>
+        <h2 class="checkout-heading">Choose Payment</h2>
+        <p class="checkout-copy">Review your order and select how you would like to pay. Payment processing will be connected later.</p>
+      </div>
+
+      <div class="payment-layout">
+        <div>
+          <div class="payment-options">
+            <label class="payment-option">
+              <input type="radio" name="payment-method" value="cod" checked onchange="selectPaymentMethod('cod')">
+              <span>
+                <span class="payment-option-title">Cash on Delivery (COD)</span>
+                <span class="payment-option-copy">Pay in cash when your sarees are delivered to your shipping address.</span>
+              </span>
+            </label>
+
+            <label class="payment-option">
+              <input type="radio" name="payment-method" value="razorpay" onchange="selectPaymentMethod('razorpay')">
+              <span>
+                <span class="payment-option-title">Online Payment (Razorpay)</span>
+                <span class="payment-option-copy">Continue to Razorpay later for card, UPI, wallet, or net banking payment.</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="checkout-status" id="payment-status" aria-live="polite"></div>
+
+          <div class="checkout-actions">
+            <button class="checkout-action secondary" type="button" onclick="showPage('checkout')">
+              Edit Address
+            </button>
+
+            <button class="checkout-action primary" id="payment-action-btn" type="button" onclick="handlePaymentAction()">
+              Place Order
+            </button>
+          </div>
+        </div>
+
+        <aside class="order-summary">
+          <h3>Order Summary</h3>
+          <div class="summary-items" id="payment-summary-items"></div>
+          <div class="summary-total">
+            <span>Total Amount</span>
+            <span id="payment-summary-total">Rs. 0</span>
+          </div>
+          <div class="summary-address" id="payment-summary-address"></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-order-success" class="checkout-page" style="display:none;">
+    <div class="checkout-panel">
+      <div class="order-success-mark">✓</div>
+      <div class="checkout-header">
+        <span class="checkout-kicker">Order Placed</span>
+        <h2 class="checkout-heading">Thank You</h2>
+        <p class="checkout-copy">Your checkout was completed successfully. We will contact you soon with delivery updates.</p>
       </div>
 
       <div class="checkout-actions">
-        <button class="checkout-action secondary" type="button" onclick="saveAddress()">
-          Save Address
+        <button class="checkout-action secondary" type="button" onclick="showPage('track')">
+          Track Order
         </button>
 
-        <button class="checkout-action primary" type="button" onclick="startPayment()">
-          Continue To Payment
+        <button class="checkout-action primary" type="button" onclick="showPage('collections')">
+          Continue Shopping
         </button>
       </div>
     </div>
@@ -3724,7 +3999,8 @@
   const SUPABASE_CONFIG = {
     url: 'https://ksjtvpybdlrhqalzsacq.supabase.co',
     anonKey: 'sb_publishable_yfnZYl3U7mGEK1PKMdIOhw_wWSbG06K',
-    productsTable: 'products'
+    productsTable: 'products',
+    razorpayKeyId: 'rzp_live_SwU3rLxeDnf4Xs'
   };
 
   const fallbackProducts = [
@@ -3744,6 +4020,8 @@
   let authMode = 'login';
   let currentUser = null;
   let pendingPhone = '';
+  let checkoutAddress = JSON.parse(localStorage.getItem('checkoutAddress') || 'null');
+  let selectedPaymentMethod = 'cod';
 
   async function getSupabaseClient() {
     if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) return null;
@@ -3757,6 +4035,7 @@
   function normalizeProduct(row, index) {
     const price = row.price_display || row.price || row.price_inr || row.amount || '';
     const oldPrice = row.old_price_display || row.old || row.compare_at_price || row.mrp || '';
+    const category = String(row.cat || row.category || row.collection || 'Saree').trim();
     const images = [
       row.image_url,
       row.image_url_2,
@@ -3766,9 +4045,9 @@
 
     return {
       id: row.id || index + 1,
-      name: row.name || row.title || 'Untitled Saree',
-      cat: row.cat || row.category || row.collection || 'Saree',
-      desc: row.desc || row.description || row.short_description || '',
+      name: String(row.name || row.title || 'Untitled Saree').trim(),
+      cat: category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Saree',
+      desc: String(row.desc || row.description || row.short_description || '').trim(),
       price: typeof price === 'number' ? `₹${price.toLocaleString('en-IN')}` : price,
       old: typeof oldPrice === 'number' ? `₹${oldPrice.toLocaleString('en-IN')}` : oldPrice,
       badge: row.badge || '',
@@ -3996,7 +4275,9 @@ if (user) {
 
   function filterProducts(cat) {
     activeCategory = cat;
-    const filtered = cat === 'All' ? products : products.filter(p => p.cat === cat);
+    const filtered = cat === 'All'
+      ? products
+      : products.filter(p => String(p.cat).toLowerCase() === String(cat).toLowerCase());
     renderProducts('collections-grid', filtered);
   }
 
@@ -4201,15 +4482,23 @@ function removeFromCart(productId) {
 
 
 function updateCartTotal() {
-  const total = cart.reduce((sum, item) => {
-    const price = Number(String(item.price || 0).replace(/[^\d]/g, ''));
-    return sum + (price * (item.qty || 1));
-  }, 0);
+  const total = getCartTotal();
 
   const subtotalElement = document.querySelector('.cart-total .amount');
   if (subtotalElement) {
-    subtotalElement.textContent = `₹${total.toLocaleString('en-IN')}`;
+    subtotalElement.textContent = formatCurrency(total);
   }
+}
+
+function getCartTotal() {
+  return cart.reduce((sum, item) => {
+    const price = Number(String(item.price || 0).replace(/[^\d]/g, ''));
+    return sum + (price * (item.qty || 1));
+  }, 0);
+}
+
+function formatCurrency(amount) {
+  return `Rs. ${Number(amount || 0).toLocaleString('en-IN')}`;
 }
 
 function renderCart() {
@@ -4221,6 +4510,7 @@ function renderCart() {
 
   if (!cart.length) {
     cartBody.innerHTML = '<div class="cart-empty"><span class="icon">🛍️</span><p>Your bag is empty</p></div>';
+    updateCartTotal();
     return;
   }
 
@@ -4293,7 +4583,7 @@ function renderProductGallery() {
   }
 
   function showPage(page) {
-    const allPages = ['home','collections','track','contact','about','return','privacy','shipping','offers','categories','auth','checkout'];
+    const allPages = ['home','collections','track','contact','about','return','privacy','shipping','offers','categories','auth','checkout','payment','order-success'];
     allPages.forEach(p => {
       const el = document.getElementById('page-' + p);
       if(el) el.style.display = 'none';
@@ -4344,36 +4634,379 @@ async function openCheckout() {
 
   if (!user && !currentUser) {
     alert('Please login before checkout');
+    closeCart();
     showPage('auth');
     return;
   }
 
   closeCart();
+  populateCheckoutAddress();
   showPage('checkout');
 }
 
-async function saveAddress() {
+  const checkoutAddressFields = [
+    { id: 'checkout-full-name', key: 'fullName', label: 'Full Name', required: true },
+    { id: 'checkout-phone', key: 'phone', label: 'Phone Number', required: true },
+    { id: 'checkout-address-line-1', key: 'addressLine1', label: 'Address Line 1', required: true },
+    { id: 'checkout-address-line-2', key: 'addressLine2', label: 'Address Line 2', required: false },
+    { id: 'checkout-city', key: 'city', label: 'City', required: true },
+    { id: 'checkout-state', key: 'state', label: 'State', required: true },
+    { id: 'checkout-postal-code', key: 'postalCode', label: 'Postal Code', required: true }
+  ];
+
+function populateCheckoutAddress() {
+  checkoutAddress = JSON.parse(localStorage.getItem('checkoutAddress') || 'null');
+  if (!checkoutAddress) return;
+
+  checkoutAddressFields.forEach(field => {
+    const input = document.getElementById(field.id);
+    if (input) input.value = checkoutAddress[field.key] || '';
+  });
+}
+
+function setCheckoutStatus(message) {
+  const status = document.getElementById('checkout-status');
+  if (status) status.textContent = message;
+}
+
+function setPaymentStatus(message) {
+  const status = document.getElementById('payment-status');
+  if (status) status.textContent = message;
+}
+
+function loadRazorpayCheckout() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Unable to load Razorpay Checkout. Please try again.'));
+    document.head.appendChild(script);
+  });
+}
+
+async function requireCheckoutUser() {
   const client = await getSupabaseClient();
-  const { data:{ user } } = await client.auth.getUser();
+  const { data:{ user } } = client ? await client.auth.getUser() : { data: { user: null } };
+  return user || currentUser;
+}
+
+function collectCheckoutAddress() {
+  const address = {};
+  const missingFields = [];
+
+  checkoutAddressFields.forEach(field => {
+    const input = document.getElementById(field.id);
+    const value = input ? input.value.trim() : '';
+    address[field.key] = value;
+    if (field.required && !value) missingFields.push(field.label);
+  });
+
+  return { address, missingFields };
+}
+
+async function saveAddress() {
+  const user = await requireCheckoutUser();
 
   if (!user) {
     alert('Please login first');
+    showPage('auth');
+    return false;
+  }
+
+  const { address, missingFields } = collectCheckoutAddress();
+
+  if (missingFields.length) {
+    setCheckoutStatus(`Please complete: ${missingFields.join(', ')}.`);
+    return false;
+  }
+
+  checkoutAddress = address;
+  localStorage.setItem('checkoutAddress', JSON.stringify(address));
+  setCheckoutStatus('Address saved. Payment will be added next.');
+  return true;
+}
+
+async function continueToPayment(event) {
+  if (event) event.preventDefault();
+  const saved = await saveAddress();
+  if (!saved) return;
+
+  renderPaymentPage();
+  showPage('payment');
+}
+
+function startPayment() {
+  continueToPayment();
+}
+
+function formatCheckoutAddress(address) {
+  if (!address) return 'No shipping address added yet.';
+
+  return [
+    address.fullName,
+    address.phone,
+    getFullAddress(address).replace(/\n/g, '<br>')
+  ].filter(Boolean).join('<br>');
+}
+
+function getFullAddress(address) {
+  if (!address) return '';
+
+  return [
+    address.addressLine1,
+    address.addressLine2,
+    [address.city, address.state, address.postalCode].filter(Boolean).join(', ')
+  ].filter(Boolean).join('\n');
+}
+
+function renderPaymentPage() {
+  const summaryItems = document.getElementById('payment-summary-items');
+  const summaryTotal = document.getElementById('payment-summary-total');
+  const summaryAddress = document.getElementById('payment-summary-address');
+
+  if (summaryItems) {
+    summaryItems.innerHTML = cart.length
+      ? cart.map(item => `
+          <div class="summary-item">
+            <div>
+              <div class="summary-item-name">${item.name}</div>
+              <div class="summary-muted">Qty: ${item.qty || 1}</div>
+            </div>
+            <div>${item.price || ''}</div>
+          </div>
+        `).join('')
+      : '<div class="summary-muted">Your bag is empty.</div>';
+  }
+
+  if (summaryTotal) summaryTotal.textContent = formatCurrency(getCartTotal());
+  if (summaryAddress) summaryAddress.innerHTML = formatCheckoutAddress(checkoutAddress);
+
+  selectPaymentMethod(selectedPaymentMethod);
+}
+
+function selectPaymentMethod(method) {
+  selectedPaymentMethod = method;
+  const button = document.getElementById('payment-action-btn');
+  if (button) {
+    button.textContent = method === 'razorpay' ? 'Proceed to Razorpay' : 'Place Order';
+  }
+  setPaymentStatus('');
+}
+
+function setPaymentLoading(isLoading) {
+  const button = document.getElementById('payment-action-btn');
+  if (!button) return;
+
+  button.disabled = isLoading;
+  button.textContent = isLoading
+    ? 'Placing Order...'
+    : selectedPaymentMethod === 'razorpay'
+      ? 'Proceed to Razorpay'
+      : 'Place Order';
+}
+
+async function handlePaymentAction() {
+  if (selectedPaymentMethod === 'razorpay') {
+    await startRazorpayPayment();
     return;
   }
 
-  const address = document.getElementById('shipping-address').value.trim();
+  await placeCodOrder();
+}
 
-  if (!address) {
-    alert('Enter address');
+async function startRazorpayPayment() {
+  setPaymentStatus('');
+
+  if (!cart.length) {
+    setPaymentStatus('Your bag is empty. Add a product before placing an order.');
     return;
   }
 
-  await client.from('user_addresses').insert({
-    user_id:user.id,
-    address
-  });
+  if (!checkoutAddress) {
+    setPaymentStatus('Please add your shipping address before starting payment.');
+    showPage('checkout');
+    return;
+  }
 
-  alert('Address saved');
+  if (!SUPABASE_CONFIG.razorpayKeyId) {
+    setPaymentStatus('Add your Razorpay Key ID before enabling online payment.');
+    return;
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    setPaymentStatus('Supabase is not configured. Unable to start Razorpay payment.');
+    return;
+  }
+
+  setPaymentLoading(true);
+  setPaymentStatus('Creating Razorpay order...');
+
+  try {
+    const amountInPaise = getCartTotal() * 100;
+    const { data, error } = await client.functions.invoke('create-razorpay-order', {
+      body: {
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: `sorayah_${Date.now()}`
+      }
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Unable to create Razorpay order.');
+    }
+
+    if (!data?.order_id) {
+      throw new Error(data?.error || 'Razorpay order ID was not returned.');
+    }
+
+    await loadRazorpayCheckout();
+    setPaymentStatus('Opening Razorpay Checkout...');
+
+    const options = {
+      key: SUPABASE_CONFIG.razorpayKeyId,
+      amount: data.amount,
+      currency: data.currency || 'INR',
+      name: 'Sorayah',
+      description: 'Sorayah saree order',
+      order_id: data.order_id,
+      prefill: {
+        name: checkoutAddress.fullName,
+        contact: checkoutAddress.phone
+      },
+      notes: {
+        source: 'sorayah_checkout'
+      },
+      handler: async function(response) {
+        await verifyRazorpayPayment(response);
+      },
+      modal: {
+        ondismiss: function() {
+          setPaymentLoading(false);
+          setPaymentStatus('Razorpay payment was cancelled.');
+        }
+      }
+    };
+
+    const razorpay = new Razorpay(options);
+    razorpay.open();
+  } catch (error) {
+    setPaymentLoading(false);
+    setPaymentStatus(error?.message || 'Unable to start Razorpay payment.');
+  }
+}
+
+async function verifyRazorpayPayment(response) {
+  const client = await getSupabaseClient();
+  if (!client) {
+    setPaymentLoading(false);
+    setPaymentStatus('Supabase is not configured. Unable to verify payment.');
+    return;
+  }
+
+  setPaymentStatus('Verifying Razorpay payment...');
+
+  try {
+    const { data, error } = await client.functions.invoke('verify-razorpay-payment', {
+      body: {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature
+      }
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Unable to verify Razorpay payment.');
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error || 'Razorpay payment verification failed.');
+    }
+
+    setPaymentStatus('');
+    showPage('order-success');
+  } catch (error) {
+    setPaymentStatus(error?.message || 'Unable to verify Razorpay payment.');
+  } finally {
+    setPaymentLoading(false);
+  }
+}
+
+async function placeCodOrder() {
+  setPaymentStatus('');
+
+  if (!cart.length) {
+    setPaymentStatus('Your bag is empty. Add a product before placing an order.');
+    return;
+  }
+
+  if (!checkoutAddress) {
+    setPaymentStatus('Please add your shipping address before placing an order.');
+    showPage('checkout');
+    return;
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    setPaymentStatus('Supabase is not configured. Unable to place the order.');
+    return;
+  }
+
+  const { data:{ user }, error: userError } = await client.auth.getUser();
+  const activeUser = user || currentUser;
+
+  if (userError) {
+    setPaymentStatus(userError.message || 'Unable to verify your login. Please try again.');
+    return;
+  }
+
+  if (!activeUser?.id) {
+    setPaymentStatus('Please login before placing an order.');
+    showPage('auth');
+    return;
+  }
+
+  const orderPayload = {
+    user_id: activeUser.id,
+    customer_name: checkoutAddress.fullName,
+    phone_number: checkoutAddress.phone,
+    full_address: getFullAddress(checkoutAddress),
+    payment_method: 'COD',
+    payment_status: 'Pending',
+    order_status: 'Placed',
+    cart_items: cart,
+    total_amount: getCartTotal(),
+    created_at: new Date().toISOString()
+  };
+
+  setPaymentLoading(true);
+  setPaymentStatus('Placing your order...');
+
+  try {
+    const { error } = await client
+      .from('orders')
+      .insert(orderPayload);
+
+    if (error) {
+      setPaymentStatus(error.message || 'Could not place your order. Please try again.');
+      return;
+    }
+
+    cart = [];
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+    setPaymentStatus('');
+    showPage('order-success');
+  } catch (error) {
+    setPaymentStatus(error?.message || 'Something went wrong while placing your order.');
+  } finally {
+    setPaymentLoading(false);
+  }
 }
 initVideoStories();
   setAuthMode('login');
