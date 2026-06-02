@@ -4695,6 +4695,31 @@ async function requireCheckoutUser() {
   return user || currentUser;
 }
 
+async function getCheckoutAccessToken() {
+  const client = await getSupabaseClient();
+  if (!client) return '';
+
+  const { data, error } = await client.auth.getSession();
+  if (error || !data.session?.access_token) return '';
+
+  return data.session.access_token;
+}
+
+async function getFunctionErrorMessage(error, fallback) {
+  if (!error) return fallback;
+
+  const context = error.context || error.cause?.context;
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json();
+      if (body?.error) return body.error;
+      if (body?.message) return body.message;
+    } catch (_) {}
+  }
+
+  return error.message || fallback;
+}
+
 function collectCheckoutAddress() {
   const address = {};
   const missingFields = [];
@@ -4844,6 +4869,13 @@ async function startRazorpayPayment() {
     return;
   }
 
+  const accessToken = await getCheckoutAccessToken();
+  if (!accessToken) {
+    setPaymentStatus('Please login again before starting Razorpay payment.');
+    showPage('auth');
+    return;
+  }
+
   setPaymentLoading(true);
   setPaymentStatus('Creating Razorpay order...');
 
@@ -4854,11 +4886,14 @@ async function startRazorpayPayment() {
         amount: amountInPaise,
         currency: 'INR',
         receipt: `sorayah_${Date.now()}`
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`
       }
     });
 
     if (error) {
-      throw new Error(error.message || 'Unable to create Razorpay order.');
+      throw new Error(await getFunctionErrorMessage(error, 'Unable to create Razorpay order.'));
     }
 
     if (!data?.order_id) {
@@ -4909,6 +4944,14 @@ async function verifyRazorpayPayment(response) {
     return;
   }
 
+  const accessToken = await getCheckoutAccessToken();
+  if (!accessToken) {
+    setPaymentLoading(false);
+    setPaymentStatus('Please login again before verifying payment.');
+    showPage('auth');
+    return;
+  }
+
   setPaymentStatus('Verifying Razorpay payment...');
 
   try {
@@ -4917,11 +4960,14 @@ async function verifyRazorpayPayment(response) {
         razorpay_order_id: response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,
         razorpay_signature: response.razorpay_signature
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`
       }
     });
 
     if (error) {
-      throw new Error(error.message || 'Unable to verify Razorpay payment.');
+      throw new Error(await getFunctionErrorMessage(error, 'Unable to verify Razorpay payment.'));
     }
 
     if (!data?.success) {
