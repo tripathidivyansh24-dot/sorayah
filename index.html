@@ -4929,6 +4929,18 @@ async function startRazorpayPayment() {
     };
 
     const razorpay = new Razorpay(options);
+    razorpay.on('payment.failed', function(response) {
+      const error = response?.error || {};
+      const message = [
+        error.description || 'Razorpay payment failed.',
+        error.reason ? `Reason: ${error.reason}` : '',
+        error.code ? `Code: ${error.code}` : ''
+      ].filter(Boolean).join(' ');
+
+      setPaymentLoading(false);
+      setPaymentStatus(message);
+      console.error('Razorpay payment failed', response);
+    });
     razorpay.open();
   } catch (error) {
     setPaymentLoading(false);
