@@ -3155,39 +3155,7 @@
           <button class="video-nav prev" type="button" onclick="moveVideoSlide(-1)" title="Previous video">‹</button>
           <div class="video-viewport" id="video-viewport">
             <div class="video-track" id="video-track">
-              <div class="video-slide">
-                <div class="portrait-video-card">
-                  <video muted playsinline preload="auto" data-video-theme="banarasi">
-                    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
-                  </video>
-                  <div class="video-overlay">
-                    <div class="video-kicker">BANARASI ZARI</div>
-                    <div class="video-title">Woven for evening light</div>
-                  </div>
-                </div>
-              </div>
-              <div class="video-slide">
-                <div class="portrait-video-card">
-                  <video muted playsinline preload="auto" data-video-theme="organza">
-                    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-                  </video>
-                  <div class="video-overlay">
-                    <div class="video-kicker">ORGANZA EDIT</div>
-                    <div class="video-title">Soft shimmer, feather drape</div>
-                  </div>
-                </div>
-              </div>
-              <div class="video-slide">
-                <div class="portrait-video-card">
-                  <video muted playsinline preload="auto" data-video-theme="bridal">
-                    <source src="https://media.w3.org/2010/05/sintel/trailer.mp4" type="video/mp4">
-                  </video>
-                  <div class="video-overlay">
-                    <div class="video-kicker">BRIDAL PICKS</div>
-                    <div class="video-title">Statement borders up close</div>
-                  </div>
-                </div>
-              </div>
+              <!-- Injected by JS from Supabase -->
             </div>
           </div>
           <button class="video-nav next" type="button" onclick="moveVideoSlide(1)" title="Next video">›</button>
@@ -4000,6 +3968,7 @@
     url: 'https://ksjtvpybdlrhqalzsacq.supabase.co',
     anonKey: 'sb_publishable_yfnZYl3U7mGEK1PKMdIOhw_wWSbG06K',
     productsTable: 'products',
+    videoStoriesTable: 'video_stories',
     razorpayKeyId: 'rzp_live_SwU3rLxeDnf4Xs'
   };
 
@@ -4012,7 +3981,29 @@
     { id:6, name:"Chiffon Garden Saree", cat:"Chiffon", desc:"Soft chiffon with floral print, perfect for parties", price:"₹2,499", old:"₹3,499", badge:"hot", img:"pi-6", images:["hero-mobile.png"] },
   ];
 
+  const fallbackVideoStories = [
+    {
+      title: 'Woven for evening light',
+      kicker: 'BANARASI ZARI',
+      videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+      theme: 'banarasi'
+    },
+    {
+      title: 'Soft shimmer, feather drape',
+      kicker: 'ORGANZA EDIT',
+      videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      theme: 'organza'
+    },
+    {
+      title: 'Statement borders up close',
+      kicker: 'BRIDAL PICKS',
+      videoUrl: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
+      theme: 'bridal'
+    }
+  ];
+
   let products = [...fallbackProducts];
+  let videoStories = [...fallbackVideoStories];
   let activeCategory = 'All';
   let activeDetailProduct = null;
   let activeProductImage = 0;
@@ -4030,6 +4021,15 @@
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
     return supabaseClient;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function normalizeProduct(row, index) {
@@ -4075,6 +4075,41 @@
     }
 
     return products;
+  }
+
+  function normalizeVideoStory(row, index) {
+    const videoUrl = row.video_url || row.url || row.source_url || row.storage_url || '';
+    return {
+      id: row.id || index + 1,
+      title: String(row.title || row.name || 'Drape story').trim(),
+      kicker: String(row.kicker || row.category || row.collection || 'SORAYAH').trim(),
+      videoUrl: String(videoUrl).trim(),
+      theme: String(row.theme || row.video_theme || 'banarasi').trim().toLowerCase(),
+      posterUrl: String(row.poster_url || row.thumbnail_url || '').trim()
+    };
+  }
+
+  async function loadVideoStoriesFromSupabase() {
+    const client = await getSupabaseClient();
+    if (!client) return videoStories;
+
+    const { data, error } = await client
+      .from(SUPABASE_CONFIG.videoStoriesTable)
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase video stories load failed; using local fallback.', error);
+      return videoStories;
+    }
+
+    if (Array.isArray(data) && data.length) {
+      videoStories = data.map(normalizeVideoStory).filter(story => story.videoUrl);
+    }
+
+    return videoStories;
   }
 
   function setAuthMode(mode) {
@@ -4308,6 +4343,45 @@ if (user) {
 
   let activeVideoSlide = 0;
   let videoAdvanceTimer;
+
+  function renderVideoStories() {
+    const track = document.getElementById('video-track');
+    const dotsWrap = document.getElementById('video-dots');
+    const carousel = document.getElementById('video-carousel');
+    if (!track || !dotsWrap || !carousel) return;
+
+    clearTimeout(videoAdvanceTimer);
+    activeVideoSlide = 0;
+    dotsWrap.innerHTML = '';
+
+    if (!videoStories.length) {
+      carousel.style.display = 'none';
+      return;
+    }
+
+    carousel.style.display = '';
+    track.style.transform = 'translateX(0)';
+    track.innerHTML = videoStories.map(story => {
+      const source = story.videoUrl
+        ? `<source src="${escapeHtml(story.videoUrl)}" type="video/mp4">`
+        : '';
+      const poster = story.posterUrl ? ` poster="${escapeHtml(story.posterUrl)}"` : '';
+
+      return `
+        <div class="video-slide">
+          <div class="portrait-video-card">
+            <video muted playsinline preload="auto" data-video-theme="${escapeHtml(story.theme)}"${poster}>
+              ${source}
+            </video>
+            <div class="video-overlay">
+              <div class="video-kicker">${escapeHtml(story.kicker)}</div>
+              <div class="video-title">${escapeHtml(story.title)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
   function paintVideoFrame(ctx, theme, frame) {
     const palettes = {
@@ -4624,9 +4698,14 @@ function renderProductGallery() {
   });
 
   async function initStore() {
-    await loadProductsFromSupabase();
+    await Promise.all([
+      loadProductsFromSupabase(),
+      loadVideoStoriesFromSupabase()
+    ]);
     renderProducts('products-grid', products.slice(0, 6));
     filterProducts(activeCategory);
+    renderVideoStories();
+    initVideoStories();
   }
 async function openCheckout() {
   const client = await getSupabaseClient();
@@ -5120,7 +5199,6 @@ async function placeCodOrder() {
     setPaymentLoading(false);
   }
 }
-initVideoStories();
   setAuthMode('login');
   initAuth();
   renderCart();
