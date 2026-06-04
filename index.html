@@ -2247,6 +2247,83 @@
     margin-top: 3px;
   }
 
+  .coupon-box {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-bottom: 16px;
+  }
+
+  .coupon-box label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    color: var(--deep-green);
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .coupon-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .coupon-row input {
+    min-width: 0;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--deep-green);
+    padding: 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  .coupon-row input:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+
+  .coupon-row button {
+    border: 0;
+    background: var(--deep-green);
+    color: var(--gold-light);
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 0 14px;
+    text-transform: uppercase;
+  }
+
+  .coupon-row button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  .coupon-message {
+    color: var(--text-mid);
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 18px;
+    margin-top: 8px;
+  }
+
+  .coupon-message.success { color: var(--deep-green); }
+  .coupon-message.error { color: #9b2f2f; }
+
+  .summary-discount {
+    display: none;
+    justify-content: space-between;
+    color: var(--deep-green);
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .summary-discount.active {
+    display: flex;
+  }
+
   .summary-total {
     display: flex;
     justify-content: space-between;
@@ -3181,46 +3258,6 @@
       </div>
     </section>
 
-    <!-- FEATURE BANNER -->
-    <section class="feature-banner">
-      <div class="feature-inner">
-        <div class="feature-text">
-          <h2>Crafted with <em>Centuries</em><br>of Tradition</h2>
-          <p>Every Sorayah saree is a labour of love — handwoven by master artisans across Varanasi, Kanchipuram, and Surat. We source directly from weaving families to bring you authenticity at its finest.</p>
-          <ul class="feature-points">
-            <li>100% handwoven authentic silk & cotton</li>
-            <li>Direct from weaver — no middlemen</li>
-            <li>Certified GI-tagged products available</li>
-            <li>Custom blouse stitching service</li>
-            <li>Personal styling consultation available</li>
-          </ul>
-          <button class="btn-gold" onclick="showPage('about')">OUR STORY</button>
-        </div>
-        <div class="feature-visual">
-          <div class="feat-vis-box">
-            <div class="icon">🧵</div>
-            <div class="num">500+</div>
-            <div class="label">Artisan Families</div>
-          </div>
-          <div class="feat-vis-box">
-            <div class="icon">🏆</div>
-            <div class="num">18</div>
-            <div class="label">Years of Legacy</div>
-          </div>
-          <div class="feat-vis-box">
-            <div class="icon">🌍</div>
-            <div class="num">28</div>
-            <div class="label">States Served</div>
-          </div>
-          <div class="feat-vis-box">
-            <div class="icon">⭐</div>
-            <div class="num">4.9</div>
-            <div class="label">Avg. Rating</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- TESTIMONIALS -->
     <section class="testimonials">
       <div class="testimonials-inner">
@@ -3818,6 +3855,18 @@
         <aside class="order-summary">
           <h3>Order Summary</h3>
           <div class="summary-items" id="payment-summary-items"></div>
+          <div class="coupon-box">
+            <label for="coupon-code">Coupon Code</label>
+            <div class="coupon-row">
+              <input id="coupon-code" type="text" autocomplete="off" placeholder="SORAYAH20">
+              <button id="coupon-apply-btn" type="button" onclick="applyCoupon()">Apply</button>
+            </div>
+            <div class="coupon-message" id="coupon-message" aria-live="polite"></div>
+          </div>
+          <div class="summary-discount" id="payment-summary-discount">
+            <span id="payment-summary-discount-label">Coupon Discount</span>
+            <span id="payment-summary-discount-amount">- Rs. 0</span>
+          </div>
           <div class="summary-total">
             <span>Total Amount</span>
             <span id="payment-summary-total">Rs. 0</span>
@@ -3969,6 +4018,7 @@
     anonKey: 'sb_publishable_yfnZYl3U7mGEK1PKMdIOhw_wWSbG06K',
     productsTable: 'products',
     videoStoriesTable: 'video_stories',
+    couponsTable: 'coupons',
     razorpayKeyId: 'rzp_live_SwU3rLxeDnf4Xs'
   };
 
@@ -4013,6 +4063,7 @@
   let pendingPhone = '';
   let checkoutAddress = JSON.parse(localStorage.getItem('checkoutAddress') || 'null');
   let selectedPaymentMethod = 'cod';
+  let appliedCoupon = null;
 
   async function getSupabaseClient() {
     if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) return null;
@@ -4575,6 +4626,45 @@ function formatCurrency(amount) {
   return `Rs. ${Number(amount || 0).toLocaleString('en-IN')}`;
 }
 
+function normalizeCouponCode(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function getCouponDiscount(coupon, subtotal = getCartTotal()) {
+  if (!coupon) return 0;
+
+  const type = String(coupon.discount_type || coupon.type || 'percent').toLowerCase();
+  const value = Number(coupon.discount_value ?? coupon.value ?? coupon.amount ?? 0);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+
+  const rawDiscount = type === 'fixed' || type === 'flat'
+    ? value
+    : Math.round((subtotal * value) / 100);
+
+  return Math.max(0, Math.min(subtotal, rawDiscount));
+}
+
+function getCheckoutTotal() {
+  const subtotal = getCartTotal();
+  return Math.max(0, subtotal - getCouponDiscount(appliedCoupon, subtotal));
+}
+
+function buildCouponSnapshot() {
+  if (!appliedCoupon) return null;
+
+  const subtotal = getCartTotal();
+  const discountAmount = getCouponDiscount(appliedCoupon, subtotal);
+
+  return {
+    code: appliedCoupon.code,
+    discount_type: appliedCoupon.discount_type,
+    discount_value: appliedCoupon.discount_value,
+    discount_amount: discountAmount,
+    subtotal_amount: subtotal,
+    final_amount: Math.max(0, subtotal - discountAmount)
+  };
+}
+
 function renderCart() {
   const cartBody = document.getElementById('cart-body');
   if (!cartBody) return;
@@ -4753,6 +4843,115 @@ function setPaymentStatus(message) {
   if (status) status.textContent = message;
 }
 
+function setCouponMessage(message, type = '') {
+  const status = document.getElementById('coupon-message');
+  if (!status) return;
+
+  status.textContent = message;
+  status.className = `coupon-message${type ? ` ${type}` : ''}`;
+}
+
+function setCouponLoading(isLoading) {
+  const button = document.getElementById('coupon-apply-btn');
+  if (!button) return;
+
+  button.disabled = isLoading;
+  button.textContent = isLoading ? 'Checking' : appliedCoupon ? 'Remove' : 'Apply';
+}
+
+function isCouponInDateRange(coupon) {
+  const now = Date.now();
+  const startsAt = coupon.starts_at ? Date.parse(coupon.starts_at) : null;
+  const expiresAt = coupon.expires_at || coupon.ends_at || coupon.valid_until;
+  const expiryTime = expiresAt ? Date.parse(expiresAt) : null;
+
+  if (startsAt && startsAt > now) return false;
+  if (expiryTime && expiryTime < now) return false;
+
+  return true;
+}
+
+async function applyCoupon() {
+  if (appliedCoupon) {
+    appliedCoupon = null;
+    const input = document.getElementById('coupon-code');
+    if (input) input.value = '';
+    setCouponMessage('Coupon removed.');
+    renderPaymentPage();
+    return;
+  }
+
+  const input = document.getElementById('coupon-code');
+  const code = normalizeCouponCode(input?.value);
+
+  if (!code) {
+    setCouponMessage('Enter a coupon code.', 'error');
+    return;
+  }
+
+  if (!cart.length) {
+    setCouponMessage('Add a product before applying a coupon.', 'error');
+    return;
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    setCouponMessage('Coupon lookup is not configured yet.', 'error');
+    return;
+  }
+
+  setCouponLoading(true);
+  setCouponMessage('Checking coupon...');
+
+  try {
+    const { data, error } = await client
+      .from(SUPABASE_CONFIG.couponsTable)
+      .select('*')
+      .eq('code', code)
+      .eq('active', true)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || !isCouponInDateRange(data)) {
+      setCouponMessage('This coupon is not active.', 'error');
+      return;
+    }
+
+    const subtotal = getCartTotal();
+    const minimumAmount = Number(data.min_order_amount || data.minimum_order_amount || 0);
+
+    if (minimumAmount && subtotal < minimumAmount) {
+      setCouponMessage(`Minimum order value is ${formatCurrency(minimumAmount)}.`, 'error');
+      return;
+    }
+
+    const discount = getCouponDiscount(data, subtotal);
+    if (!discount) {
+      setCouponMessage('This coupon has no discount configured.', 'error');
+      return;
+    }
+
+    appliedCoupon = {
+      ...data,
+      code,
+      discount_type: data.discount_type || data.type || 'percent',
+      discount_value: Number(data.discount_value ?? data.value ?? data.amount ?? 0)
+    };
+
+    if (input) input.value = code;
+    setCouponMessage(`${code} applied. You saved ${formatCurrency(discount)}.`, 'success');
+    renderPaymentPage();
+  } catch (error) {
+    console.error('Coupon lookup failed', error);
+    setCouponMessage(error?.message || 'Unable to apply this coupon.', 'error');
+  } finally {
+    setCouponLoading(false);
+  }
+}
+
 function loadRazorpayCheckout() {
   return new Promise((resolve, reject) => {
     if (window.Razorpay) {
@@ -4871,7 +5070,13 @@ function getFullAddress(address) {
 function renderPaymentPage() {
   const summaryItems = document.getElementById('payment-summary-items');
   const summaryTotal = document.getElementById('payment-summary-total');
+  const summaryDiscount = document.getElementById('payment-summary-discount');
+  const summaryDiscountLabel = document.getElementById('payment-summary-discount-label');
+  const summaryDiscountAmount = document.getElementById('payment-summary-discount-amount');
   const summaryAddress = document.getElementById('payment-summary-address');
+  const couponInput = document.getElementById('coupon-code');
+  const subtotal = getCartTotal();
+  const discountAmount = getCouponDiscount(appliedCoupon, subtotal);
 
   if (summaryItems) {
     summaryItems.innerHTML = cart.length
@@ -4887,8 +5092,13 @@ function renderPaymentPage() {
       : '<div class="summary-muted">Your bag is empty.</div>';
   }
 
-  if (summaryTotal) summaryTotal.textContent = formatCurrency(getCartTotal());
+  if (couponInput && appliedCoupon) couponInput.value = appliedCoupon.code;
+  if (summaryDiscount) summaryDiscount.classList.toggle('active', discountAmount > 0);
+  if (summaryDiscountLabel) summaryDiscountLabel.textContent = appliedCoupon ? `Coupon (${appliedCoupon.code})` : 'Coupon Discount';
+  if (summaryDiscountAmount) summaryDiscountAmount.textContent = `- ${formatCurrency(discountAmount)}`;
+  if (summaryTotal) summaryTotal.textContent = formatCurrency(Math.max(0, subtotal - discountAmount));
   if (summaryAddress) summaryAddress.innerHTML = formatCheckoutAddress(checkoutAddress);
+  setCouponLoading(false);
 
   selectPaymentMethod(selectedPaymentMethod);
 }
@@ -4959,12 +5169,13 @@ async function startRazorpayPayment() {
   setPaymentStatus('Creating Razorpay order...');
 
   try {
-    const amountInPaise = getCartTotal() * 100;
+    const amountInPaise = getCheckoutTotal() * 100;
     const { data, error } = await client.functions.invoke('create-razorpay-order', {
       body: {
         amount: amountInPaise,
         currency: 'INR',
-        receipt: `sorayah_${Date.now()}`
+        receipt: `sorayah_${Date.now()}`,
+        coupon: buildCouponSnapshot()
       },
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -4994,7 +5205,8 @@ async function startRazorpayPayment() {
         contact: checkoutAddress.phone
       },
       notes: {
-        source: 'sorayah_checkout'
+        source: 'sorayah_checkout',
+        coupon_code: appliedCoupon?.code || ''
       },
       handler: async function(response) {
         await verifyRazorpayPayment(response);
@@ -5098,6 +5310,7 @@ async function saveRazorpayOrder(paymentResponse) {
 
   setPaymentStatus('Saving your order...');
 
+  const couponSnapshot = buildCouponSnapshot();
   const orderPayload = {
     user_id: activeUser.id,
     customer_name: checkoutAddress.fullName,
@@ -5109,9 +5322,10 @@ async function saveRazorpayOrder(paymentResponse) {
     cart_items: cart.map(item => ({
       ...item,
       razorpay_order_id: paymentResponse.razorpay_order_id,
-      razorpay_payment_id: paymentResponse.razorpay_payment_id
+      razorpay_payment_id: paymentResponse.razorpay_payment_id,
+      coupon: couponSnapshot
     })),
-    total_amount: getCartTotal(),
+    total_amount: getCheckoutTotal(),
     created_at: new Date().toISOString()
   };
 
@@ -5124,6 +5338,7 @@ async function saveRazorpayOrder(paymentResponse) {
   }
 
   cart = [];
+  appliedCoupon = null;
   localStorage.setItem('cart', JSON.stringify(cart));
   renderCart();
 }
@@ -5162,6 +5377,7 @@ async function placeCodOrder() {
     return;
   }
 
+  const couponSnapshot = buildCouponSnapshot();
   const orderPayload = {
     user_id: activeUser.id,
     customer_name: checkoutAddress.fullName,
@@ -5170,8 +5386,8 @@ async function placeCodOrder() {
     payment_method: 'COD',
     payment_status: 'Pending',
     order_status: 'Placed',
-    cart_items: cart,
-    total_amount: getCartTotal(),
+    cart_items: cart.map(item => ({ ...item, coupon: couponSnapshot })),
+    total_amount: getCheckoutTotal(),
     created_at: new Date().toISOString()
   };
 
@@ -5189,6 +5405,7 @@ async function placeCodOrder() {
     }
 
     cart = [];
+    appliedCoupon = null;
     localStorage.setItem('cart', JSON.stringify(cart));
     renderCart();
     setPaymentStatus('');
