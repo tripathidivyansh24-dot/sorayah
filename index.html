@@ -3135,7 +3135,7 @@
             </div>
           </div>
         </div>
-        <div class="hero-image-grid fade-in-up">
+        <div class="hero-image-grid fade-in-up" id="hero-image-grid">
           <div class="hero-img-card">
             <div class="hero-img-placeholder img-p-1">
               <img class="hero-main-img" src="hero-mobile.png" alt="Emerald silk saree with antique gold zari draped in a boutique studio">
@@ -4018,6 +4018,7 @@
     anonKey: 'sb_publishable_yfnZYl3U7mGEK1PKMdIOhw_wWSbG06K',
     productsTable: 'products',
     videoStoriesTable: 'video_stories',
+    heroPhotosTable: 'hero_photos',
     couponsTable: 'coupons',
     razorpayKeyId: 'rzp_live_SwU3rLxeDnf4Xs'
   };
@@ -4052,8 +4053,27 @@
     }
   ];
 
+  const fallbackHeroPhotos = [
+    {
+      imageUrl: 'hero-mobile.png',
+      label: 'Bridal Banarasi',
+      altText: 'Emerald silk saree with antique gold zari draped in a boutique studio'
+    },
+    {
+      imageUrl: '',
+      label: 'Pure Organza',
+      altText: 'Pure organza saree'
+    },
+    {
+      imageUrl: '',
+      label: 'Silk Kanjivaram',
+      altText: 'Silk Kanjivaram saree'
+    }
+  ];
+
   let products = [...fallbackProducts];
   let videoStories = [...fallbackVideoStories];
+  let heroPhotos = [...fallbackHeroPhotos];
   let activeCategory = 'All';
   let activeDetailProduct = null;
   let activeProductImage = 0;
@@ -4161,6 +4181,38 @@
     }
 
     return videoStories;
+  }
+
+  function normalizeHeroPhoto(row, index) {
+    return {
+      id: row.id || index + 1,
+      imageUrl: String(row.image_url || row.url || row.photo_url || row.storage_url || '').trim(),
+      label: String(row.label || row.title || row.name || '').trim(),
+      altText: String(row.alt_text || row.alt || row.label || row.title || 'Sorayah hero saree').trim()
+    };
+  }
+
+  async function loadHeroPhotosFromSupabase() {
+    const client = await getSupabaseClient();
+    if (!client) return heroPhotos;
+
+    const { data, error } = await client
+      .from(SUPABASE_CONFIG.heroPhotosTable)
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase hero photos load failed; using local fallback.', error);
+      return heroPhotos;
+    }
+
+    if (Array.isArray(data) && data.length) {
+      heroPhotos = data.map(normalizeHeroPhoto).slice(0, 3);
+    }
+
+    return heroPhotos;
   }
 
   function setAuthMode(mode) {
@@ -4390,6 +4442,30 @@ if (user) {
         input.focus();
       }
     }, 120);
+  }
+
+  function renderHeroPhotos() {
+    const grid = document.getElementById('hero-image-grid');
+    if (!grid) return;
+
+    const photos = (heroPhotos.length ? heroPhotos : fallbackHeroPhotos).slice(0, 3);
+    grid.innerHTML = photos.map((photo, index) => {
+      const image = photo.imageUrl
+        ? `<img class="hero-main-img" src="${escapeHtml(photo.imageUrl)}" alt="${escapeHtml(photo.altText || photo.label)}">`
+        : '<div style="font-size:50px;opacity:0.35">SORAYAH</div>';
+      const label = photo.label
+        ? `<div class="img-label">${escapeHtml(photo.label)}</div>`
+        : '';
+
+      return `
+        <div class="hero-img-card">
+          <div class="hero-img-placeholder img-p-${index + 1}">
+            ${image}
+            ${label}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   let activeVideoSlide = 0;
@@ -4790,8 +4866,10 @@ function renderProductGallery() {
   async function initStore() {
     await Promise.all([
       loadProductsFromSupabase(),
-      loadVideoStoriesFromSupabase()
+      loadVideoStoriesFromSupabase(),
+      loadHeroPhotosFromSupabase()
     ]);
+    renderHeroPhotos();
     renderProducts('products-grid', products.slice(0, 6));
     filterProducts(activeCategory);
     renderVideoStories();
