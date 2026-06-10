@@ -878,6 +878,8 @@
       font-family: 'Cinzel', serif;
       letter-spacing: 1px;
       font-weight: 500;
+      background: var(--rich-green);
+      color: var(--gold-pale);
     }
 
     .badge-new {
@@ -4390,7 +4392,7 @@
       <button class="checkout-btn" onclick="openCheckout()">
         PROCEED TO CHECKOUT
       </button>
-      <div class="cod-note">📦 Cash on Delivery Available</div>
+      <!-- <div class="cod-note">📦 Cash on Delivery Available</div> -->
     </div>
   </div>
   <div id="cart-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:2999;"
@@ -4803,6 +4805,12 @@
       }
     }
 
+    function getProductBadgeClass(badge) {
+      const key = String(badge || '').trim().toLowerCase();
+      if (key === 'hot' || key === 'new' || key === 'sale') return `badge-${key}`;
+      return '';
+    }
+
     function renderProducts(containerId, data) {
       const grid = document.getElementById(containerId);
       grid.innerHTML = data.map(p => `
@@ -4811,7 +4819,7 @@
           ${p.images && p.images.length
           ? `<img class="product-photo" src="${p.images[0]}" alt="${p.name}">`
           : `<div class="product-image-empty ${p.img}">Image coming soon</div>`}
-          ${p.badge ? `<span class="product-badge badge-${p.badge}">${p.badge.toUpperCase()}</span>` : ''}
+          ${p.badge ? `<span class="product-badge ${getProductBadgeClass(p.badge)}">${p.badge.toUpperCase()}</span>` : ''}
           <button class="wishlist-btn">♡</button>
         </div>
         <div class="product-info">
@@ -5066,11 +5074,20 @@
 
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
+    function isProductOutOfStock(product) {
+      return String(product?.badge || '').trim().toLowerCase() === 'not in stock';
+    }
+
     function addToCart(e, productId) {
       if (e) e.stopPropagation();
 
       const product = products.find(p => String(p.id) === String(productId));
       if (!product) return;
+
+      if (isProductOutOfStock(product)) {
+        alert('This item is not in stock right now.');
+        return;
+      }
 
       const existing = cart.find(item => String(item.id) === String(productId));
 
