@@ -3334,13 +3334,13 @@
 <body>
 
   <!-- WHATSAPP FLOAT -->
-  <a href="https://wa.me/9519456330?text=Hi%20Sorayah!%20I'm%20interested%20in%20your%20sarees." class="wa-float"
+  <a href="https://wa.me/+919519456330?text=Hi%20Sorayah!%20I'm%20interested%20in%20your%20sarees." class="wa-float"
     target="_blank" title="Chat on WhatsApp">💬</a>
 
   <!-- TOP BAR -->
   <div class="topbar">✦ FREE SHIPPING ACROSS INDIA ✦</div>
 
-  <!-- HEADER -->
+  <!-- HEADER --> 
   <header>
     <div class="header-inner">
       <div class="logo-wrap" onclick="showPage('home')">
@@ -3374,7 +3374,7 @@
           <span class="cart-badge" id="cart-count">3</span>
         </button>
         <button class="icon-btn wishlist-btn-header" title="Wishlist">❤️</button>
-        <button class="whatsapp-btn" onclick="window.open('https://wa.me/9519456330','_blank')">
+        <button class="whatsapp-btn" onclick="window.open('https://wa.me/+919519456330','_blank')">
           💬 Chat
         </button>
       </div>
@@ -3835,7 +3835,7 @@
               <div class="info-value">Mon–Sat: 10 AM – 8 PM<br>Sunday: 11 AM – 6 PM</div>
             </div>
           </div>
-          <button class="btn-gold" onclick="window.open('https://wa.me/9519456330','_blank')">
+          <button class="btn-gold" onclick="window.open('https://wa.me/+919519456330','_blank')">
             💬 WHATSAPP US NOW
           </button>
         </div>
@@ -4319,7 +4319,7 @@
           <div class="social-links">
             <a class="social-link" href="https://www.instagram.com/sorayahdrapes/" target="_blank">📸</a>
             <a class="social-link" href="https://facebook.com" target="_blank">👍</a>
-            <a class="social-link" href="https://wa.me/9519456330" target="_blank">💬</a>
+            <a class="social-link" href="https://wa.me/+919519456330" target="_blank">💬</a>
             <a class="social-link" href="https://youtube.com" target="_blank">▶️</a>
           </div>
         </div>
@@ -5920,43 +5920,46 @@
 
 
     async function submitContactForm() {
+      const name = document.getElementById('contact-name').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const phone = document.getElementById('contact-phone').value.trim();
+      const subject = document.getElementById('contact-subject').value;
+      const message = document.getElementById('contact-message').value.trim();
 
-  const name = document.getElementById('contact-name').value.trim();
-  const email = document.getElementById('contact-email').value.trim();
-  const phone = document.getElementById('contact-phone').value.trim();
-  const subject = document.getElementById('contact-subject').value;
-  const message = document.getElementById('contact-message').value.trim();
-
-  if (!name || !message) {
-    alert('Please enter your name and message.');
-    return;
-  }
-
-  const { error } = await supabase
-    .from('contact_messages')
-    .insert([
-      {
-        name,
-        email,
-        phone,
-        subject,
-        message
+      if (!name || !message) {
+        alert('Please enter your name and message.');
+        return;
       }
-    ]);
 
-  if (error) {
-    console.error(error);
-    alert('Failed to send message.');
-    return;
-  }
+      const client = await getSupabaseClient();
+      if (!client) {
+        alert('Supabase is not configured. Unable to send your message.');
+        return;
+      }
 
-  alert('Message sent successfully!');
+      const { error } = await client
+        .from('contact_messages')
+        .insert({
+          name,
+          email,
+          phone,
+          subject,
+          message
+        });
 
-  document.getElementById('contact-name').value = '';
-  document.getElementById('contact-email').value = '';
-  document.getElementById('contact-phone').value = '';
-  document.getElementById('contact-message').value = '';
-}
+      if (error) {
+        console.error(error);
+        alert('Failed to send message: ' + error.message);
+        return;
+      }
+
+      alert('Message sent successfully!');
+
+      document.getElementById('contact-name').value = '';
+      document.getElementById('contact-email').value = '';
+      document.getElementById('contact-phone').value = '';
+      document.getElementById('contact-message').value = '';
+    }
   </script>
 </body>
 
