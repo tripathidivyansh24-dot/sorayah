@@ -3841,32 +3841,39 @@
         </div>
         <div>
           <div class="form-group">
-            <label>Full Name</label>
-            <input type="text" placeholder="Your name">
-          </div>
-          <div class="form-group">
-            <label>Email Address</label>
-            <input type="email" placeholder="your@email.com">
-          </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input type="tel" placeholder="+91 00000 00000">
-          </div>
-          <div class="form-group">
-            <label>Subject</label>
-            <select>
-              <option>Order Inquiry</option>
-              <option>Product Question</option>
-              <option>Returns & Refunds</option>
-              <option>Custom Order</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Message</label>
-            <textarea id="contact-message" placeholder="Tell us how we can help..."></textarea>
-          </div>
-          <button class="btn-gold" style="width:100%;" onclick="submitContactForm()"">SEND MESSAGE</button>
+  <label>Full Name</label>
+  <input id="contact-name" type="text" placeholder="Your name">
+</div>
+
+<div class="form-group">
+  <label>Email Address</label>
+  <input id="contact-email" type="email" placeholder="your@email.com">
+</div>
+
+<div class="form-group">
+  <label>Phone</label>
+  <input id="contact-phone" type="tel" placeholder="+91 00000 00000">
+</div>
+
+<div class="form-group">
+  <label>Subject</label>
+  <select id="contact-subject">
+    <option>Order Inquiry</option>
+    <option>Product Question</option>
+    <option>Returns & Refunds</option>
+    <option>Custom Order</option>
+    <option>Other</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label>Message</label>
+  <textarea id="contact-message" placeholder="Tell us how we can help..."></textarea>
+</div>
+
+<button class="btn-gold" style="width:100%;" onclick="submitContactForm()">
+  SEND MESSAGE
+</button>
         </div>
       </div>
     </div>
