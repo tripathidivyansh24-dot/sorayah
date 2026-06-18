@@ -4576,7 +4576,13 @@
         row.image_url_2,
         row.image_url_3,
         row.image_url_4
-      ].filter(Boolean);
+      ].filter(Boolean).map(url => {
+        // Add CORS proxy for Pinterest images
+        if (url && url.includes('pinimg.com')) {
+          return `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        }
+        return url;
+      });
       
       // Pattern 2: Alternative single image columns
       if (multiImageColumns.length === 0) {
@@ -4586,7 +4592,12 @@
           row.photo,
           row.image1,
           row.photo1
-        ].filter(Boolean);
+        ].filter(Boolean).map(url => {
+          if (url && url.includes('pinimg.com')) {
+            return `https://corsproxy.io/?${encodeURIComponent(url)}`;
+          }
+          return url;
+        });
         images = altColumns;
       } else {
         images = multiImageColumns;
@@ -4608,7 +4619,11 @@
       
       // Pattern 4: Fallback to single image column
       if (images.length === 0 && row.image) {
-        images = [row.image].filter(Boolean);
+        let imgUrl = row.image;
+        if (imgUrl.includes('pinimg.com')) {
+          imgUrl = `https://corsproxy.io/?${encodeURIComponent(imgUrl)}`;
+        }
+        images = [imgUrl].filter(Boolean);
       }
 
       return {
