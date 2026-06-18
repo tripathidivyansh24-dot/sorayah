@@ -4566,12 +4566,50 @@
       const price = row.price_display || row.price || row.price_inr || row.amount || '';
       const oldPrice = row.old_price_display || row.old || row.compare_at_price || row.mrp || '';
       const category = String(row.cat || row.category || row.collection || 'Saree').trim();
-      const images = [
+      
+      // Try multiple column name patterns for images
+      let images = [];
+      
+      // Pattern 1: Multiple single image columns (image_url, image_url_2, etc.)
+      const multiImageColumns = [
         row.image_url,
         row.image_url_2,
         row.image_url_3,
         row.image_url_4
-      ].filter(Boolean).slice(0, 4);
+      ].filter(Boolean);
+      
+      // Pattern 2: Alternative single image columns
+      if (multiImageColumns.length === 0) {
+        const altColumns = [
+          row.image,
+          row.img,
+          row.photo,
+          row.image1,
+          row.photo1
+        ].filter(Boolean);
+        images = altColumns;
+      } else {
+        images = multiImageColumns;
+      }
+      
+      // Pattern 3: JSON array in single column
+      if (images.length === 0 && row.images) {
+        if (Array.isArray(row.images)) {
+          images = row.images.filter(url => typeof url === 'string' && url.trim());
+        } else if (typeof row.images === 'string') {
+          try {
+            const parsed = JSON.parse(row.images);
+            images = Array.isArray(parsed) ? parsed : [row.images];
+          } catch {
+            images = [row.images];
+          }
+        }
+      }
+      
+      // Pattern 4: Fallback to single image column
+      if (images.length === 0 && row.image) {
+        images = [row.image].filter(Boolean);
+      }
 
       return {
         id: row.id || index + 1,
@@ -4601,7 +4639,19 @@
       }
 
       if (Array.isArray(data) && data.length) {
+        console.log('🔍 First product from Supabase:', data[0]);
+        console.log('📋 Available columns:', Object.keys(data[0]));
+        
         products = data.map(normalizeProduct);
+        
+        // Check if images loaded
+        const productsWithImages = products.filter(p => p.images.length > 0).length;
+        const productsWithoutImages = products.filter(p => p.images.length === 0).length;
+        console.log(`✅ ${productsWithImages} products with images, ❌ ${productsWithoutImages} without`);
+        
+        if (productsWithoutImages > 0) {
+          console.warn('⚠️ WARNING: Some products have no images. Check Supabase column names.');
+        }
       }
 
       return products;
