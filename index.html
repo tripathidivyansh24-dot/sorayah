@@ -5204,6 +5204,8 @@
 
       localStorage.setItem('cart', JSON.stringify(cart));
       renderCart();
+      closeProductDetail();
+      openCart();
 
       const badge = document.querySelector('.cart-badge');
       if (badge) badge.textContent = cart.reduce((a, b) => a + (b.qty || 1), 0);
